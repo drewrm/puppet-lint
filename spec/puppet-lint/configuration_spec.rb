@@ -49,6 +49,7 @@ describe PuppetLint::Configuration do
       'error_level' => :all,
       'log_format' => '',
       'with_context' => false,
+      'output_format' => :console
     }
   end
 end

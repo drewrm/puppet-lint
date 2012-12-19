@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>PuppetLint - Report</title>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Lato:300italic,700italic,300,700);
+
+      body {
+        padding:50px;
+        font:14px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        color:#777;
+        font-weight:300;
+      }
+
+      h1 {
+        color: #79C;
+      }
+
+      .WARNING {
+
+      }
+
+      .ERROR {
+        color: #e77;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>PuppetLint Report</h1>
+    </header>
+    <section>
+      <p><strong>Errors:</strong> <%= errors %> <strong>Warnings:</strong> <%= warnings %></p>
+    </section>
+    <section>
+      <% messages.each do |file, msg| %>
+        <h3>File: <%= file %></h3>
+        <% msgs = msg.sort { |a,b| a[:linenumber] <=> b[:linenumber] }
+           msgs.each_with_index do |m, i | %>
+          <p class="<%= m[:KIND] %>"><%= i + 1 %>: <%= m[:KIND] %>: <%= m[:message] %> on line <%= m[:linenumber] %>
+          <code><pre><%= m[:context] %></pre></code></p>
+        <% end %>
+      <% end %>
+    </section>
+  </body>
+</html>

@@ -4,6 +4,7 @@ require 'puppet-lint/configuration'
 require 'puppet-lint/checks'
 require 'puppet-lint/bin'
 require 'puppet-lint/monkeypatches'
+require 'puppet-lint/reporters'
 
 class PuppetLint::NoCodeError < StandardError; end
 
@@ -14,15 +15,20 @@ class PuppetLint
   # Public: Initialise a new PuppetLint object.
   def initialize
     @code = nil
-    @statistics = {:error => 0, :warning => 0}
     @fileinfo = {:path => ''}
   end
+
 
   # Public: Access PuppetLint's configuration from outside the class.
   #
   # Returns a PuppetLint::Configuration object.
   def self.configuration
     @configuration ||= PuppetLint::Configuration.new
+  end
+
+  def reporter
+    clazz = ["PuppetLint", "Reporters", configuration.output_format.to_s.capitalize].inject(Object) {|obj,c| obj.const_get c}
+    @reporter ||= clazz.new
   end
 
   # Public: Access PuppetLint's configuration from inside the class.
@@ -62,16 +68,6 @@ class PuppetLint
     return configuration.log_format
   end
 
-  # Internal: Format a problem message and print it to STDOUT.
-  #
-  # message - A Hash containing all the information about a problem.
-  #
-  # Returns nothing.
-  def format_message(message)
-    format = log_format
-    puts format % message
-  end
-
   # Internal: Print out the line of the manifest on which the problem was found
   # as well as a marker pointing to the location on the line.
   #
@@ -79,17 +75,16 @@ class PuppetLint
   # linter  - The PuppetLint::Checks object that was used to test the manifest.
   #
   # Returns nothing.
-  def print_context(message, linter)
+  def get_context(message, linter)
     # XXX: I don't really like the way this has been implemented (passing the
     # linter object down through layers of functions.  Refactor me!
     return if message[:check] == 'documentation'
     line = linter.manifest_lines[message[:linenumber] - 1]
     offset = line.index(/\S/)
-    puts "\n  #{line.strip}"
-    printf "%#{message[:column] + 2 - offset}s\n\n", '^'
+    sprintf "\n  #{line.strip}\n%#{message[:column] + 2 - offset}s\n\n", "^"
   end
 
-  # Internal: Print the reported problems with a manifest to stdout.
+  # Internal: collect the reported problems into a reporter
   #
   # problems - An Array of problem Hashes as returned by
   #            PuppetLint::Checks#run.
@@ -98,15 +93,16 @@ class PuppetLint
   #
   # Returns nothing.
   def report(problems, linter)
+    reporter.format = log_format
+    reporter.configuration = configuration
     problems.each do |message|
-      @statistics[message[:kind]] += 1
-
+      reporter.statistics[message[:kind]] += 1
       message.merge!(@fileinfo) {|key, v1, v2| v1 }
       message[:KIND] = message[:kind].to_s.upcase
 
       if [message[:kind], :all].include? configuration.error_level
-        format_message message
-        print_context(message, linter) if configuration.with_context
+        message[:context] = get_context(message, linter)
+        reporter.add_message message
       end
     end
   end
@@ -115,14 +111,14 @@ class PuppetLint
   #
   # Returns true if errors were found, otherwise returns false.
   def errors?
-    @statistics[:error] != 0
+    reporter.statistics[:error] != 0
   end
 
   # Public: Determine if PuppetLint found any warnings in the manifest.
   #
   # Returns true if warnings were found, otherwise returns false.
   def warnings?
-    @statistics[:warning] != 0
+    reporter.statistics[:warning] != 0
   end
 
   # Public: Run the loaded manifest code through the lint checks and print the
@@ -138,6 +134,12 @@ class PuppetLint
     linter = PuppetLint::Checks.new
     problems = linter.run(@fileinfo, @code)
     report problems, linter
+  end
+
+  # Public: print out the reporter to stdout
+  # returns nothing.
+  def print_report
+    reporter.report
   end
 end
 

@@ -22,6 +22,7 @@ class PuppetLint
             linter.file = puppet_file
             linter.run
           end
+          linter.print_report
           fail if linter.errors? || (
             linter.warnings? && PuppetLint.configuration.fail_on_warnings
           )

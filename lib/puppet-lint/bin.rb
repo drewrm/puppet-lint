@@ -48,6 +48,10 @@ class PuppetLint::Bin
         PuppetLint.configuration.error_level = el
       end
 
+      opts.on("--output-format TYPE", [:html, :color, :console], "The output format to return.", "(console, color, html") do |o|
+        PuppetLint.configuration.output_format = o
+      end
+
       opts.on("-l", '--load FILE', 'Load a file containing custom puppet-lint checks.') do |f|
         load f
       end
@@ -119,6 +123,7 @@ class PuppetLint::Bin
         l = PuppetLint.new
         l.file = f
         l.run
+        l.print_report
         if l.errors? or (l.warnings? and PuppetLint.configuration.fail_on_warnings)
           return_val = 1
         end
