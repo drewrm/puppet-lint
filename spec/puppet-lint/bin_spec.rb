@@ -261,7 +261,15 @@ describe PuppetLint::Bin do
       its(:stdout) { should == 'ERROR: test::foo not in autoload module layout on line 2'.red }
     end
 
+    context 'to print html report' do
+      let(:args) { [
+        '--output-format', 'html',
+        'spec/fixtures/test/manifests/fail.pp'
+      ] }
 
+      its(:exitstatus) { should == 1 }
+      its(:stdout) { should =~ /<p class="ERROR">1: ERROR: test::foo not in autoload module layout on line 2/ }
+    end
     context 'when loading options from a file' do
       let(:args) { 'spec/fixtures/test/manifests/fail.pp' }
 
