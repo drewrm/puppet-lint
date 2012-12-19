@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'rspec/mocks'
 require 'optparse'
+require 'colorize'
 
 class CommandRun
   attr_accessor :stdout, :stderr, :exitstatus
@@ -249,6 +250,17 @@ describe PuppetLint::Bin do
       its(:exitstatus) { should == 1 }
       its(:stdout) { should == 'test::foo not in autoload module layout' }
     end
+
+    context 'to print with color' do
+      let(:args) { [
+        '--output-format', 'color',
+        'spec/fixtures/test/manifests/fail.pp'
+      ] }
+
+      its(:exitstatus) { should == 1 }
+      its(:stdout) { should == 'ERROR: test::foo not in autoload module layout on line 2'.red }
+    end
+
 
     context 'when loading options from a file' do
       let(:args) { 'spec/fixtures/test/manifests/fail.pp' }
